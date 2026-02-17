@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:3030 ws://127.0.0.1:3030;">
+    <title>CertificateLedger - Blockchain Certificate System</title>
+    
+    <!-- Web3.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    
+    <!-- html2canvas for certificate download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="app.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .wallet-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .address {
+            background: #f3f4f6;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .certificate-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .certificate-card h3 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .cert-field {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+        
+        .cert-field strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .cert-field span {
+            font-size: 18px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        .admin-panel {
+            display: none;
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .admin-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .success {
+            background: #10b981;
+        }
+        
+        .success:hover {
+            background: #059669;
+        }
+        
+        .danger {
+            background: #ef4444;
+        }
+        
+        .danger:hover {
+            background: #dc2626;
+        }
+        
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo">🎓 CertificateLedger</div>
+            <div class="wallet-info">
+                <div class="address">
+                    Address: <span id="userAddress">Not Connected</span>
+                </div>
+                <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+            </div>
+        </header>
+
+        <!-- Admin Panel -->
+        <div id="adminPanel" class="admin-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3><span class="admin-badge">ADMIN</span> Control Panel</h3>
+                <div>
+                    Contract Balance: <strong id="contractBalance">0 ETH</strong>
+                    <button onclick="updateContractBalance()" style="margin-left: 10px;">Refresh</button>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div>
+                    <h4>Issue Certificate</h4>
+                    <form id="issueForm" onsubmit="event.preventDefault(); issueCertificate();">
+                        <div class="form-group">
+                            <label>Student Address:</label>
+                            <input type="text" id="studentAddress" placeholder="0x..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Student Name:</label>
+                            <input type="text" id="studentName" placeholder="Full Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Specialization:</label>
+                            <input type="text" id="specialization" placeholder="e.g., Computer Science" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Academic Average (0-100):</label>
+                            <input type="number" id="avgGrade" min="0" max="100" step="0.01" required>
+                        </div>
+                        <button type="submit" id="issueBtn" class="success">Issue Certificate</button>
+                    </form>
+                </div>
+                
+                <div>
+                    <h4>Admin Actions</h4>
+                    <button onclick="withdrawFees()" id="withdrawBtn" class="danger" style="width: 100%; margin-bottom: 10px;">
+                        💰 Withdraw All Fees
+                    </button>
+                    <button onclick="loadFeeHistory()" id="loadHistoryBtn" style="width: 100%;">
+                        📊 View All Transactions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Section: Pay Fee -->
+        <div class="section">
+            <h2>📝 Student Registration</h2>
+            <div class="info-box">
+                <strong>Step 1:</strong> Pay the registration fee (0.05 ETH) to register for certificate issuance.
+            </div>
+            <button onclick="payFee()" id="payFeeBtn" class="success">Pay Registration Fee (0.05 ETH)</button>
+        </div>
+
+        <!-- Search Certificate -->
+        <div class="section">
+            <h2>🔍 Search Certificate</h2>
+            <div class="info-box">
+                Enter any Ethereum address to view their certificate (if issued).
+            </div>
+            <div class="form-group">
+                <label>Student Ethereum Address:</label>
+                <input type="text" id="searchAddress" placeholder="0x...">
+            </div>
+            <button onclick="getCertificate()" id="searchBtn">Search Certificate</button>
+            
+            <!-- Certificate Display -->
+            <div id="certificateCard" class="certificate-card">
+                <h3>🎓 Certificate of Achievement</h3>
+                <div class="cert-field">
+                    <strong>Student Name:</strong>
+                    <span id="dispName">-</span>
+                </div>
+                <div class="cert-field">
+                    <strong>Specialization:</strong>
+                    <span id="dispSpecialization">-</span>
+                </div>
+                <div class="cert-field">
+                    <strong>Academic Average:</strong>
+                    <span id="dispAvg">-</span>
+                </div>
+                <div class="cert-field">
+                    <strong>President Address:</strong>
+                    <span id="dispPresident" style="font-family: monospace; font-size: 14px;">-</span>
+                </div>
+                <div class="cert-field">
+                    <strong>Issue Date:</strong>
+                    <span id="dispDate">-</span>
+                </div>
+                <div class="cert-field">
+                    <strong>Student Address:</strong>
+                    <span id="dispStudentAddress" style="font-family: monospace; font-size: 14px;">-</span>
+                </div>
+                <button onclick="downloadCertificate()" style="margin-top: 20px; width: 100%;">
+                    💾 Download Certificate
+                </button>
+            </div>
+        </div>
+
+        <!-- My Transactions -->
+        <div class="section">
+            <h2>💳 My Fee Transactions</h2>
+            <div class="info-box">
+                View your personal fee payment history.
+            </div>
+            <button onclick="loadMyTransactions()" id="loadMyTxBtn">Load My Transactions</button>
+            
+            <div id="myTransactionsTable" style="display: none; margin-top: 20px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myTxTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Fee History (Public Transparency) -->
+        <div class="section">
+            <h2>📊 All Fee Transactions (Public Transparency)</h2>
+            <div id="feeHistoryTable" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Payer Address</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feeTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    
+    
+</body>
+</html>
